@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Objection.lol Character Sprite Downloader</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg-primary:#fff;--bg-secondary:#f5f5f5;--bg-success:#e6f9ee;--bg-danger:#fdecea;--bg-warn:#fff8e1;
+  --text-primary:#111;--text-secondary:#666;--text-tertiary:#aaa;
+  --text-success:#1a7a3f;--text-danger:#b71c1c;--text-warn:#7a5800;
+  --border-t:rgba(0,0,0,0.12);--border-s:rgba(0,0,0,0.2);--border-p:rgba(0,0,0,0.35);
+  --r-md:8px;--r-lg:12px;--accent:#3a5bdc;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg-primary:#1e1e1e;--bg-secondary:#2a2a2a;--bg-success:#0d3320;--bg-danger:#3b1010;--bg-warn:#2a2000;
+    --text-primary:#f0f0f0;--text-secondary:#aaa;--text-tertiary:#666;
+    --text-success:#4caf82;--text-danger:#f08080;--text-warn:#e6c040;
+    --border-t:rgba(255,255,255,0.1);--border-s:rgba(255,255,255,0.2);--border-p:rgba(255,255,255,0.35);
+    --accent:#7d9bff;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text-primary);background:var(--bg-secondary);min-height:100vh;}
+.wrap{max-width:960px;margin:0 auto;padding:2rem 1rem 4rem;}
+h1{font-size:22px;font-weight:500;margin-bottom:4px;}
+.sub{font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;}
+.sub code,.steps code{background:var(--bg-secondary);padding:1px 5px;border-radius:4px;font-family:monospace;}
+.card{background:var(--bg-primary);border:0.5px solid var(--border-t);border-radius:var(--r-lg);padding:1rem 1.25rem;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.card-title-right{font-size:11px;font-weight:400;color:var(--text-tertiary);text-transform:none;letter-spacing:0;}
+.steps{font-size:13px;line-height:1.7;color:var(--text-secondary);padding-left:20px;margin-bottom:12px;}
+textarea{width:100%;min-height:150px;resize:vertical;font-family:monospace;font-size:12px;padding:10px 12px;border-radius:var(--r-md);border:0.5px solid var(--border-s);background:var(--bg-secondary);color:var(--text-primary);outline:none;}
+textarea:focus{border-color:var(--border-p);}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+.btn{font-family:inherit;font-size:13px;font-weight:500;padding:7px 16px;border-radius:var(--r-md);border:0.5px solid var(--border-s);background:transparent;color:var(--text-primary);cursor:pointer;transition:background .12s;white-space:nowrap;}
+.btn:hover:not(:disabled){background:var(--bg-secondary);}
+.btn:active:not(:disabled){transform:scale(0.98);}
+.btn:disabled{opacity:.35;cursor:default;}
+.btn-primary{background:var(--text-primary);color:var(--bg-primary);border-color:transparent;}
+.btn-primary:hover:not(:disabled){opacity:.88;background:var(--text-primary);}
+.status{font-size:13px;padding:7px 11px;border-radius:var(--r-md);margin-top:10px;background:var(--bg-secondary);color:var(--text-secondary);display:none;align-items:flex-start;gap:6px;line-height:1.5;}
+.status.show{display:flex;}
+.status.ok{background:var(--bg-success);color:var(--text-success);}
+.status.err{background:var(--bg-danger);color:var(--text-danger);}
+.status.warn{background:var(--bg-warn);color:var(--text-warn);}
+.status a{color:inherit;}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;margin-top:6px;}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px;}
+.img-card{background:var(--bg-secondary);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:8px;}
+.thumb{background:
+  linear-gradient(45deg,rgba(128,128,128,.25) 25%,transparent 25%),
+  linear-gradient(-45deg,rgba(128,128,128,.25) 25%,transparent 25%),
+  linear-gradient(45deg,transparent 75%,rgba(128,128,128,.25) 75%),
+  linear-gradient(-45deg,transparent 75%,rgba(128,128,128,.25) 75%);
+  background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;
+  border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;height:110px;}
+.thumb img{max-width:100%;max-height:100%;object-fit:contain;}
+.thumb span{font-size:11px;color:var(--text-danger);padding:6px;text-align:center;}
+.img-card label{display:flex;align-items:flex-start;gap:6px;font-size:11.5px;font-weight:500;word-break:break-all;line-height:1.35;cursor:pointer;}
+.img-card input{margin-top:2px;accent-color:var(--accent);}
+.img-card .links{display:flex;gap:10px;font-size:11px;}
+.img-card .links a{color:var(--accent);text-decoration:none;cursor:pointer;}
+.img-card .links a:hover{text-decoration:underline;}
+.hint{font-size:11.5px;color:var(--text-tertiary);margin-top:12px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Objection.lol Character Sprite Downloader</h1>
+  <p class="sub">Save the sprites from an objection.lol character as a ZIP. Runs entirely in your browser; nothing is uploaded.</p>
+
+  <div class="card">
+    <div class="card-title">Paste character data</div>
+    <ol class="steps">
+      <li>On objection.lol, load the character (My Assets → Characters, or open a case that uses it).</li>
+      <li>Open DevTools (<code>F12</code> or <code>Ctrl/Cmd+Shift+I</code>) → <b>Network</b> → filter <b>Fetch/XHR</b>.</li>
+      <li>Reload, click the request that returns the character's JSON, open <b>Response</b>, and copy it all.</li>
+      <li>Paste it below.</li>
+    </ol>
+    <textarea id="pasteArea" placeholder="Paste the character JSON response here…" spellcheck="false"></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="parseBtn">Fetch sprites</button>
+      <button class="btn" id="clearBtn">Clear</button>
+    </div>
+    <div id="pasteStatus" class="status"></div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none">
+    <div class="card-title">Sprites <span class="card-title-right" id="resultCount"></span></div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn btn-primary" id="downloadZipBtn">Download selected as .zip</button>
+      <button class="btn" id="selectAllBtn">Select all</button>
+      <button class="btn" id="selectNoneBtn">Select none</button>
+    </div>
+    <div id="zipStatus" class="status"></div>
+    <div class="img-grid" id="grid"></div>
+    <p class="hint">Not affiliated with objection.lol.</p>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const pasteArea=$('pasteArea'), pasteStatus=$('pasteStatus'), zipStatus=$('zipStatus');
+const resultsCard=$('resultsCard'), grid=$('grid'), downloadZipBtn=$('downloadZipBtn');
+let foundItems = [];
+
+function setStatus(el, type, msg){
+  el.className = 'status show ' + type;
+  el.innerHTML = '<span class="dot"></span><span>' + msg + '</span>';
+}
+function hideStatus(el){ el.className = 'status'; el.innerHTML = ''; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+$('parseBtn').addEventListener('click', () => {
+  const raw = pasteArea.value.trim();
+  if (!raw){ setStatus(pasteStatus,'err','Paste the JSON response first.'); return; }
+  let data;
+  try{ data = JSON.parse(raw); }
+  catch(e){ setStatus(pasteStatus,'err',`Couldn't read that as JSON (${esc(e.message)}). Make sure you copied the full response body.`); return; }
+  foundItems = extractImageUrls(data).map((it,i) => ({...it, filename: suggestFilename(it,i)}));
+  if (!foundItems.length){
+    resultsCard.style.display = 'none';
+    setStatus(pasteStatus,'warn','No image URLs were found in that data.');
+    return;
+  }
+  setStatus(pasteStatus,'ok',`Found ${foundItems.length} sprite${foundItems.length===1?'':'s'}.`);
+  renderGrid();
+});
+
+$('clearBtn').addEventListener('click', () => {
+  pasteArea.value = ''; foundItems = []; grid.innerHTML = '';
+  resultsCard.style.display = 'none'; hideStatus(pasteStatus); hideStatus(zipStatus);
+});
+
+function extractImageUrls(data){
+  const found = [], seen = new Set();
+  const IMG_RE = /\.(png|jpe?g|gif|webp|apng|bmp)(\?[^"'\s]*)?$/i;
+  const CDN = ['filegarden','discordapp','discord.com','imgur','googleusercontent','cloudinary','ibb.co','postimg','amazonaws','fbcdn'];
+  (function walk(node, path){
+    if (node == null) return;
+    if (typeof node === 'string'){
+      if (/^https?:\/\//i.test(node) && !seen.has(node) &&
+          (IMG_RE.test(node) || CDN.some(h => node.toLowerCase().includes(h)))){
+        seen.add(node);
+        found.push({ url: node, path: path.join('/') || 'asset' });
+      }
+      return;
+    }
+    if (Array.isArray(node)){ node.forEach((v,i) => walk(v,[...path,i])); return; }
+    if (typeof node === 'object'){ for (const [k,v] of Object.entries(node)) walk(v,[...path,k]); }
+  })(data, []);
+  return found;
+}
+
+function suggestFilename(item, index){
+  const m = item.url.split('?')[0].match(/\.([a-zA-Z0-9]+)$/);
+  const ext = m ? m[1] : 'png';
+  const base = item.path.replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'sprite';
+  return String(index+1).padStart(2,'0') + '_' + base.slice(0,70) + '.' + ext;
+}
+
+function renderGrid(){
+  grid.innerHTML = '';
+  hideStatus(zipStatus);
+  resultsCard.style.display = 'block';
+  $('resultCount').textContent = `${foundItems.length} found`;
+  foundItems.forEach((item,i) => {
+    const el = document.createElement('div');
+    el.className = 'img-card';
+    el.innerHTML = `
+      <div class="thumb"><img src="${esc(item.url)}" loading="lazy" alt=""></div>
+      <label><input type="checkbox" checked data-idx="${i}"><span>${esc(item.filename)}</span></label>
+      <div class="links">
+        <a href="${esc(item.url)}" target="_blank" rel="noopener">Open</a>
+        <a class="copyLink" data-url="${esc(item.url)}">Copy link</a>
+      </div>`;
+    el.querySelector('img').addEventListener('error', e => {
+      e.target.parentElement.innerHTML = '<span>Preview unavailable</span>';
+    });
+    el.querySelector('.copyLink').addEventListener('click', e => {
+      const a = e.currentTarget;
+      navigator.clipboard.writeText(a.dataset.url);
+      a.textContent = 'Copied';
+      setTimeout(() => a.textContent = 'Copy link', 1200);
+    });
+    grid.appendChild(el);
+  });
+}
+
+const setAll = v => grid.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = v);
+$('selectAllBtn').addEventListener('click', () => setAll(true));
+$('selectNoneBtn').addEventListener('click', () => setAll(false));
+
+downloadZipBtn.addEventListener('click', async () => {
+  const picked = [...grid.querySelectorAll('input:checked')].map(cb => foundItems[+cb.dataset.idx]);
+  if (!picked.length){ setStatus(zipStatus,'err','Select at least one sprite first.'); return; }
+  downloadZipBtn.disabled = true;
+  const zip = new JSZip();
+  let ok = 0; const failed = [];
+
+  for (let i=0; i<picked.length; i++){
+    setStatus(zipStatus,'', `Fetching ${i+1} of ${picked.length}…`);
+    try{
+      const res = await fetch(picked[i].url, { mode:'cors' });
+      if (!res.ok) throw new Error(res.status);
+      zip.file(picked[i].filename, await res.blob());
+      ok++;
+    }catch(e){ failed.push(picked[i]); }
+  }
+
+  if (!ok){
+    setStatus(zipStatus,'err',`Couldn't fetch any images (the host may block cross-origin downloads). Use each sprite's "Open" link and save it manually.`);
+    downloadZipBtn.disabled = false;
+    return;
+  }
+
+  setStatus(zipStatus,'', 'Zipping…');
+  const blob = await zip.generateAsync({ type:'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'objection-lol-sprites.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+
+  let msg = `Downloaded ${ok} sprite${ok===1?'':'s'}.`;
+  if (failed.length){
+    msg += ` ${failed.length} couldn't be fetched, so save these manually: ` +
+      failed.map(f => `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.filename)}</a>`).join(', ');
+  }
+  setStatus(zipStatus, failed.length ? 'warn' : 'ok', msg);
+  downloadZipBtn.disabled = false;
+});
+</script>
+</body>
+</html>
